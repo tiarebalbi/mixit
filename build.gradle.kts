@@ -1,33 +1,29 @@
-import com.github.jengelman.gradle.plugins.shadow.ShadowExtension
 import org.jetbrains.kotlin.noarg.gradle.NoArgExtension
-import org.junit.platform.gradle.plugin.EnginesExtension
-import org.junit.platform.gradle.plugin.FiltersExtension
-import org.junit.platform.gradle.plugin.JUnitPlatformExtension
 import com.moowork.gradle.gulp.GulpTask
 import com.moowork.gradle.node.NodeExtension
 import com.moowork.gradle.node.yarn.YarnInstallTask
-import java.util.concurrent.TimeUnit
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 buildscript {
-    val kotlinVersion = "1.0.6"
-    val junitPlatformVersion = "1.0.0-M3"
+    val kotlinVersion = "1.1.0-beta-17"
+    val springBootVersion = "2.0.0.BUILD-SNAPSHOT"
     extra["kotlinVersion"] = kotlinVersion
-    extra["junitPlatformVersion"] = junitPlatformVersion
+    extra["springBootVersion"] = springBootVersion
 
     repositories {
         mavenCentral()
-        jcenter()
-        maven{
-            setUrl("https://plugins.gradle.org/m2/")
-        }
+        maven { setUrl("https://plugins.gradle.org/m2/") }
+        maven { setUrl("http://dl.bintray.com/kotlin/kotlin-eap-1.1") }
+        maven { setUrl("https://repo.spring.io/snapshot") }
+        maven { setUrl("https://repo.spring.io/milestone") }
     }
 
     dependencies {
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:$springBootVersion")
         classpath("org.jetbrains.kotlin:kotlin-noarg:$kotlinVersion")
-        classpath("com.github.jengelman.gradle.plugins:shadow:1.2.4")
-        classpath("org.junit.platform:junit-platform-gradle-plugin:$junitPlatformVersion")
-        classpath("com.moowork.gradle:gradle-node-plugin:1.0.1")
+        classpath("org.jetbrains.kotlin:kotlin-allopen:$kotlinVersion")
+        classpath("com.moowork.gradle:gradle-node-plugin:1.1.1")
     }
 }
 
@@ -35,11 +31,10 @@ apply {
     plugin("idea")
     plugin("kotlin")
     plugin("kotlin-noarg")
-    plugin("application")
-    plugin("org.junit.platform.gradle.plugin")
-    plugin("com.github.johnrengelman.shadow")
+    plugin("kotlin-spring")
     plugin("com.moowork.node")
     plugin("com.moowork.gulp")
+    plugin("org.springframework.boot")
 }
 
 version = "1.0.0-SNAPSHOT"
@@ -47,41 +42,20 @@ version = "1.0.0-SNAPSHOT"
 repositories {
     mavenCentral()
     maven { setUrl("https://dl.bintray.com/jetbrains/spek") }
+    maven { setUrl("http://dl.bintray.com/kotlin/kotlin-eap-1.1") }
     maven { setUrl("https://repo.spring.io/milestone") }
     maven { setUrl("https://repo.spring.io/snapshot") }
 }
 
-configure<ApplicationPluginConvention> {
-    mainClassName = "mixit.ApplicationKt"
-}
-
-configure<ShadowExtension> {
-    version = null
-}
-
-configure<JUnitPlatformExtension> {
-    filters {
-        engines { "spek" }
+tasks.withType<KotlinCompile> {
+    kotlinOptions {
+        jvmTarget = "1.8"
     }
 }
 
 configure<NodeExtension> {
-    version = "6.9.2"
+    version = "6.9.4"
     download = true
-}
-
-fun JUnitPlatformExtension.filters(setup: FiltersExtension.() -> Unit) {
-    when (this) {
-        is ExtensionAware -> extensions.getByType(FiltersExtension::class.java).setup()
-        else -> throw Exception("${this::class} must be an instance of ExtensionAware")
-    }
-}
-
-fun FiltersExtension.engines(setup: EnginesExtension.() -> Unit) {
-    when (this) {
-        is ExtensionAware -> extensions.getByType(EnginesExtension::class.java).setup()
-        else -> throw Exception("${this::class} must be an instance of ExtensionAware")
-    }
 }
 
 configure<NoArgExtension> {
@@ -90,25 +64,23 @@ configure<NoArgExtension> {
 
 val kotlinVersion = extra["kotlinVersion"] as String
 val springVersion = "5.0.0.BUILD-SNAPSHOT"
+val springBootVersion = extra["springBootVersion"] as String
+val springDataVersion = "2.0.0.BUILD-SNAPSHOT"
 val jacksonVersion = "2.8.5"
 val reactorVersion = "3.0.4.RELEASE"
-val junitPlatformVersion= extra["junitPlatformVersion"] as String
-val spekVersion = "1.1.0-beta3"
 
 dependencies {
     compile("org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion")
     compile("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
 
-    compile("org.springframework:spring-aop:$springVersion")
-    compile("org.springframework:spring-beans:$springVersion")
-    compile("org.springframework:spring-context:$springVersion")
-    compile("org.springframework:spring-core:$springVersion")
-    compile("org.springframework:spring-expression:$springVersion")
-    compile("org.springframework:spring-tx:$springVersion")
-    compile("org.springframework:spring-web:$springVersion")
-    compile("org.springframework:spring-web-reactive:$springVersion")
+    compile("org.springframework.boot.experimental:spring-boot-starter-web-reactive:0.1.0.BUILD-SNAPSHOT") {
+        exclude(module= "spring-boot-starter-tomcat")
+        exclude(module= "hibernate-validator")
+    }
+    testCompile("org.springframework.boot:spring-boot-starter-test")
 
     compile("com.samskivert:jmustache:1.13")
+    compile("com.atlassian.commonmark:commonmark:0.8.0")
 
     compile("io.projectreactor:reactor-core:$reactorVersion")
     compile("io.projectreactor.ipc:reactor-netty:0.6.0.RELEASE")
@@ -122,21 +94,18 @@ dependencies {
     compile("org.slf4j:slf4j-api:1.7.21")
     compile("ch.qos.logback:logback-classic:1.1.7")
 
-    compile("org.springframework.data:spring-data-mongodb:2.0.0.BUILD-SNAPSHOT")
+    compile("org.springframework.data:spring-data-mongodb:$springDataVersion")
+    compile("org.springframework.data:spring-data-commons:$springDataVersion")
     compile("org.mongodb:mongodb-driver-reactivestreams:1.2.0")
-
-    testCompile("org.junit.platform:junit-platform-runner:$junitPlatformVersion")
-    testCompile("org.jetbrains.spek:spek-api:$spekVersion")
-    testCompile("org.jetbrains.spek:spek-junit-platform-engine:$spekVersion")
 }
 
-task<YarnInstallTask>("yarnInstall"){}
-
 task<GulpTask>("gulpBuild") {
-    dependsOn("yarnInstall")
+    dependsOn(YarnInstallTask.NAME)
     inputs.dir("src/main/sass")
+    inputs.dir("src/main/ts")
+    inputs.dir("src/main/iamges")
     inputs.dir("build/.tmp")
-    outputs.dir("src/main/static/css")
+    outputs.dir("build/resources/static")
     args = listOf("default")
 }
 

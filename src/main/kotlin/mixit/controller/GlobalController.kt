@@ -1,24 +1,32 @@
 package mixit.controller
 
+import mixit.model.SponsorshipLevel.GOLD
+import mixit.model.SponsorshipLevel.SILVER
+import mixit.repository.EventRepository
 import org.springframework.core.io.ClassPathResource
-import org.springframework.http.MediaType.APPLICATION_JSON
+import org.springframework.http.MediaType.TEXT_HTML
+import org.springframework.stereotype.Controller
 import org.springframework.web.reactive.function.server.*
 import org.springframework.web.reactive.function.server.RequestPredicates.accept
 import org.springframework.web.reactive.function.server.ServerResponse.ok
 
+@Controller
+class GlobalController(val repository: EventRepository) : RouterFunction<ServerResponse> {
 
-class GlobalController : RouterFunction<ServerResponse> {
-
-    override fun route(request: ServerRequest) = RouterFunctionDsl {
-        accept(APPLICATION_JSON).apply {
+    override fun route(req: ServerRequest) = route(req) {
+        accept(TEXT_HTML).apply {
             GET("/") { indexView() }
-            GET("/sample") { sampleView() }
         }
         resources("/**", ClassPathResource("static/"))
-    } (request)
+    }
 
-    fun indexView() = HandlerFunction { ok().render("index") }
-
-    fun sampleView() = HandlerFunction { ok().render("sample") }
+    fun indexView() = repository.findOne("mixit17")
+            .then { events ->
+                val sponsors = events.sponsors.groupBy { it.level }
+                
+                ServerResponse.ok().render("index", mapOf(
+                        Pair("sponsorsGold", sponsors.get(GOLD)),
+                        Pair("sponsorsSilver", sponsors.get(SILVER))
+                ))
+            }
 }
-

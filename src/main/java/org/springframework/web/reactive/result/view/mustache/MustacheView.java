@@ -19,8 +19,10 @@ package org.springframework.web.reactive.result.view.mustache;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.net.URLEncoder;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 import com.samskivert.mustache.Mustache;
 import com.samskivert.mustache.MustacheException;
@@ -30,7 +32,7 @@ import reactor.core.publisher.Mono;
 
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.MediaType;
- import org.springframework.web.reactive.result.view.AbstractUrlBasedView;
+import org.springframework.web.reactive.result.view.AbstractUrlBasedView;
 import org.springframework.web.reactive.result.view.View;
 import org.springframework.web.server.ServerWebExchange;
 
@@ -46,6 +48,7 @@ public class MustacheView extends AbstractUrlBasedView {
     private Template template;
 
     public MustacheView() {
+        setRequestContextAttribute("context");
     }
 
     public MustacheView(Template template) {
@@ -59,6 +62,10 @@ public class MustacheView extends AbstractUrlBasedView {
                 DataBuffer dataBuffer = exchange.getResponse().bufferFactory().allocateBuffer();
                 Writer writer = new OutputStreamWriter(dataBuffer.asOutputStream(), getDefaultCharset());
                 Locale locale = exchange.getRequest().getHeaders().getAcceptLanguageAsLocale();
+                Optional<String> username = exchange.getSession().block().getAttribute("username");
+                if (username.isPresent()) {
+                    model.put("username", username.get());
+                }
                 if (locale != null) {
                     model.put("locale", locale.toString());
                     model.put("localePrefix", locale.getLanguage().equals("en") ? "/en" : "");
@@ -68,6 +75,9 @@ public class MustacheView extends AbstractUrlBasedView {
                 model.put("i18n", (Mustache.Lambda) (frag, out) -> {
                     String key = frag.execute();
                     out.write(getApplicationContext().getMessage(key, null, locale));
+                });
+                model.put("urlEncode", (Mustache.Lambda) (frag, out) -> {
+                    out.write(URLEncoder.encode(frag.execute(), "UTF-8"));
                 });
                 try {
                     this.template.execute(model, writer);
