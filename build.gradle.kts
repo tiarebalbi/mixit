@@ -5,7 +5,7 @@ import com.moowork.gradle.node.yarn.YarnInstallTask
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 buildscript {
-    val kotlinVersion = "1.1.0-beta-17"
+    val kotlinVersion = "1.1.0-beta-22"
     val springBootVersion = "2.0.0.BUILD-SNAPSHOT"
     extra["kotlinVersion"] = kotlinVersion
     extra["springBootVersion"] = springBootVersion
@@ -103,7 +103,7 @@ task<GulpTask>("gulpBuild") {
     dependsOn(YarnInstallTask.NAME)
     inputs.dir("src/main/sass")
     inputs.dir("src/main/ts")
-    inputs.dir("src/main/iamges")
+    inputs.dir("src/main/images")
     inputs.dir("build/.tmp")
     outputs.dir("build/resources/static")
     args = listOf("default")
